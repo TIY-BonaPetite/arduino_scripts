@@ -1,6 +1,7 @@
 from threading import Thread
 import time
 import serial
+import requests
 
 last_received = ''
 
@@ -8,8 +9,8 @@ last_received = ''
 def receiving(ser):
     global last_received
     buffer = ''
-    while True:
-        buffer = buffer + ser.read(ser.inWaiting())
+    while ser.isOpen():
+        buffer = buffer + ser.read(ser.inWaiting()).decode('utf-8')
         if '\n' in buffer:
             lines = buffer.split('\n')  # Guaranteed to have at least 2 entries
             last_received = lines[-2]
@@ -37,8 +38,9 @@ class SerialData(object):
             # no serial connection
             self.ser = None
         else:
-            self.thread = Thread(target=receiving, args=(self.ser,))
-            self.thread.start()
+            thread = Thread(target=receiving, args=(self.ser,))
+            thread.daemon = True
+            thread.start()
 
     def next(self):
         if not self.ser:
@@ -49,19 +51,24 @@ class SerialData(object):
             try:
                 return float(raw_line.strip())
             except ValueError:
-                print('bogus data ', raw_line)
+                # print('bogus data ', raw_line)
                 time.sleep(.005)
-        return 0.
+        return 0
 
     def __del__(self):
         if self.ser:
             self.ser.close()
 
 if __name__ == '__main__':
+    sleep_time = 1
     s = SerialData()
+    time.sleep(3)
     for i in range(10):
-        time.sleep(.015)
-        print(s.next())
-    # print('foo')
-    # s.thread._Thread__stop()
-    # print('bar')
+        # while True:
+        time.sleep(sleep_time)
+        pH_level = s.next()
+        payload = {'pH_level': pH_level, 'temperature': 200}
+        r = requests.post('http://bonapetite.herokuapp.com/api/mister/',
+                          payload)
+        print(pH_level)
+        print('response:', r.text)
