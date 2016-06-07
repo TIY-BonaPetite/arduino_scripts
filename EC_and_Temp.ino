@@ -13,9 +13,17 @@ void setup(void) {
 
 void loop(void) {
  float temperature = getTemp();
+ Serial.println("");
+ Serial.println("");
  Serial.println(temperature);
  Serial.print("Degrees C");
  delay(1000); //just here to slow down the output so it is easier to read
+ sensorValue = analogRead(sensorPin);
+ Serial.println("");
+ Serial.println("");
+ Serial.println(sensorValue);
+ Serial.print("Total Disolved Solids");
+ delay(5000); //just here to slow down the output so it is easier to read
 }
 
 
