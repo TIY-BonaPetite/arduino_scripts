@@ -24,7 +24,8 @@ class SerialData(object):
     def __init__(self, init=50):
         try:
             self.ser = serial.Serial(
-                port='/dev/cu.usbmodem1421',
+                port='/dev/ttyACMO',  # for RaspberryPi
+                # port='/dev/cu.usbmodem1421',  # for Mac OSX
                 baudrate=9600,
                 bytesize=serial.EIGHTBITS,
                 parity=serial.PARITY_NONE,
@@ -50,7 +51,7 @@ class SerialData(object):
             raw_line = last_received
             try:
                 float(raw_line[1:].strip())
-                return raw_line
+                return raw_line.strip()
             except ValueError:
                 # print('bogus data ', raw_line)
                 time.sleep(.005)
@@ -64,7 +65,7 @@ class SerialData(object):
 def main():
     sleep_time = 1
     serial_data = SerialData()
-    time.sleep(3)
+    time.sleep(2)
     base_url = 'http://bonapetite.herokuapp.com/'
     with requests.Session() as s:
         url = base_url + 'login/'
@@ -76,12 +77,13 @@ def main():
                          'password': 'password123',
                          'csrfmiddlewaretoken': csrftoken}
 
-        s.post(url, data=login_payload, headers=headers)
+        r = s.post(url, data=login_payload, headers=headers)
 
-        for i in range(2):
+        for i in range(1):
             ec_level, temperature = '', ''
             time.sleep(sleep_time)
             raw_value = serial_data.next()
+            print(raw_value)
             if 'E' in raw_value:
                 ec_level = float(raw_value[1:])
             if 'T' in raw_value:
@@ -96,16 +98,14 @@ def main():
                     temperature = float(raw_value[1:])
             url = base_url + 'api/mister'
             s.get(url)
-            print('csrf: {}'.format(s.cookies['csrftoken']))
             csrftoken = s.cookies['csrftoken']
 
-            sensor_payload = {'pH_level': ec_level,
+            sensor_payload = {'ec_level': 1337,
                               'temperature': temperature,
                               'csrfmiddlewaretoken': csrftoken}
             r = s.post(base_url + 'api/mister/',
-                       data=sensor_payload)
+                       sensor_payload)
             print(r.status_code)
-
 
 if __name__ == '__main__':
     main()
